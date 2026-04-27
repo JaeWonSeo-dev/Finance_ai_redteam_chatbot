@@ -12,7 +12,7 @@ from src.chatbot import FinanceChatbot
 from src.utils import append_log, load_attack_cases, to_bool
 
 
-def run_redteam_tests(chatbot: FinanceChatbot) -> pd.DataFrame:
+def run_redteam_tests(chatbot: FinanceChatbot, storage_backend: str = "csv") -> pd.DataFrame:
     """Run all attack test cases and return result dataframe."""
     cases = load_attack_cases()
     results: List[Dict[str, object]] = []
@@ -52,7 +52,8 @@ def run_redteam_tests(chatbot: FinanceChatbot) -> pd.DataFrame:
                 "detected": result["detected"],
                 "blocked": result["blocked"],
                 "response": result["response"],
-            }
+            },
+            storage_backend=storage_backend,
         )
 
         results.append(result)
