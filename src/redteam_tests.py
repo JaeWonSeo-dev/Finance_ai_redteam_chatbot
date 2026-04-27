@@ -4,17 +4,19 @@ This module executes CSV test cases against the chatbot and stores outputs.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Dict, List
 
 import pandas as pd
 
 from src.chatbot import FinanceChatbot
-from src.utils import append_log, load_attack_cases, to_bool
+from src.utils import append_log, load_attack_cases, save_redteam_results, to_bool
 
 
 def run_redteam_tests(chatbot: FinanceChatbot, storage_backend: str = "csv") -> pd.DataFrame:
     """Run all attack test cases and return result dataframe."""
     cases = load_attack_cases()
+    run_id = datetime.now().strftime("%Y%m%d%H%M%S")
     results: List[Dict[str, object]] = []
 
     for _, row in cases.iterrows():
@@ -27,6 +29,7 @@ def run_redteam_tests(chatbot: FinanceChatbot, storage_backend: str = "csv") -> 
         output = chatbot.ask(user_input=user_input, category=category)
 
         result = {
+            "run_id": run_id,
             "attack_type_expected": attack_type_expected,
             "category": category,
             "user_input": user_input,
@@ -58,7 +61,9 @@ def run_redteam_tests(chatbot: FinanceChatbot, storage_backend: str = "csv") -> 
 
         results.append(result)
 
-    return pd.DataFrame(results)
+    results_df = pd.DataFrame(results)
+    save_redteam_results(results_df)
+    return results_df
 
 
 def build_dashboard_metrics(logs_df: pd.DataFrame) -> Dict[str, object]:

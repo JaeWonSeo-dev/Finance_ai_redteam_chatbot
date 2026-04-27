@@ -17,6 +17,7 @@ DATA_DIR = BASE_DIR / "data"
 ATTACK_CASES_PATH = DATA_DIR / "attack_test_cases.csv"
 LOGS_PATH = DATA_DIR / "logs.csv"
 LOGS_SQLITE_PATH = DATA_DIR / "logs.db"
+REDTEAM_RESULTS_PATH = DATA_DIR / "redteam_results.csv"
 
 LOG_COLUMNS = [
     "timestamp",
@@ -123,3 +124,26 @@ def to_bool(value: object) -> bool:
         return value
     text = str(value).strip().lower()
     return text in {"true", "1", "yes", "y"}
+
+
+def save_redteam_results(results_df: pd.DataFrame) -> None:
+    """Persist red-team run results to a cumulative CSV file."""
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if not REDTEAM_RESULTS_PATH.exists():
+        results_df.to_csv(REDTEAM_RESULTS_PATH, index=False, encoding="utf-8-sig")
+        return
+
+    results_df.to_csv(REDTEAM_RESULTS_PATH, mode="a", header=False, index=False, encoding="utf-8-sig")
+
+
+def load_latest_redteam_results() -> pd.DataFrame:
+    """Load only the latest run from cumulative red-team results."""
+    if not REDTEAM_RESULTS_PATH.exists():
+        return pd.DataFrame()
+
+    df = pd.read_csv(REDTEAM_RESULTS_PATH)
+    if df.empty or "run_id" not in df.columns:
+        return pd.DataFrame()
+
+    latest_run_id = str(df["run_id"].iloc[-1])
+    return df[df["run_id"].astype(str) == latest_run_id].copy()

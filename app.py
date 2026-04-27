@@ -13,7 +13,13 @@ import streamlit as st
 from src.chatbot import FinanceChatbot
 from src.redteam_tests import build_dashboard_metrics, run_redteam_tests
 from src.report_generator import generate_markdown_report, save_markdown_report
-from src.utils import append_log, ensure_data_files, load_attack_cases, load_logs
+from src.utils import (
+    append_log,
+    ensure_data_files,
+    load_attack_cases,
+    load_latest_redteam_results,
+    load_logs,
+)
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -99,11 +105,14 @@ def _redteam_page(chatbot: FinanceChatbot, storage_backend: str) -> None:
 
     if st.button("전체 테스트 실행"):
         results = run_redteam_tests(chatbot, storage_backend=storage_backend)
+        pass_count = int(results["test_passed"].sum()) if not results.empty else 0
+        pass_rate = (pass_count / len(results) * 100.0) if len(results) else 0.0
         st.success(f"테스트 완료: {len(results)}건")
+        st.info(f"최신 실행 Pass Rate: {pass_rate:.1f}% ({pass_count}/{len(results)})")
         st.dataframe(results, use_container_width=True, hide_index=True)
 
 
-    def _dashboard_page(storage_backend: str) -> None:
+def _dashboard_page(storage_backend: str) -> None:
     """Render admin dashboard with aggregated security metrics."""
     st.subheader("3) 관리자 대시보드")
 
@@ -114,6 +123,20 @@ def _redteam_page(chatbot: FinanceChatbot, storage_backend: str) -> None:
     c1.metric("전체 테스트/대화 수", metrics["total_cases"])
     c2.metric("탐지된 공격 수", metrics["detected_attacks"])
     c3.metric("차단된 요청 수", metrics["blocked_requests"])
+
+    latest_redteam_df = load_latest_redteam_results()
+    st.markdown("### 최신 레드팀 실행 성능")
+    if latest_redteam_df.empty:
+        st.caption("아직 레드팀 실행 기록이 없습니다.")
+    else:
+        latest_total = len(latest_redteam_df)
+        latest_passed = int(latest_redteam_df["test_passed"].astype(bool).sum())
+        latest_pass_rate = (latest_passed / latest_total * 100.0) if latest_total else 0.0
+        latest_run_id = str(latest_redteam_df["run_id"].iloc[0])
+        d1, d2, d3 = st.columns(3)
+        d1.metric("최신 실행 ID", latest_run_id)
+        d2.metric("최신 실행 케이스", latest_total)
+        d3.metric("최신 실행 Pass Rate", f"{latest_pass_rate:.1f}%")
 
     st.markdown("### 공격 유형별 탐지 결과")
     st.dataframe(metrics["by_attack_type"], use_container_width=True, hide_index=True)
@@ -143,7 +166,8 @@ def _report_page(storage_backend: str) -> None:
     st.subheader("4) 보고서 자동 생성")
 
     logs_df = load_logs(storage_backend=storage_backend)
-    markdown_text = generate_markdown_report(logs_df)
+    latest_redteam_df = load_latest_redteam_results()
+    markdown_text = generate_markdown_report(logs_df, latest_redteam_df=latest_redteam_df)
     st.markdown(markdown_text)
 
     if st.button("docs/portfolio_report.md로 저장"):

@@ -91,6 +91,7 @@ API 모드 사용(선택)
 - 관리자 대시보드 탭에서 결과 확인
 - 보고서 생성 탭에서 Markdown 보고서 저장
 - 사이드바에서 로그 저장소를 csv 또는 sqlite로 선택 가능
+- 레드팀 실행 결과는 data/redteam_results.csv에 누적 저장
 
 4. 단위 테스트 실행
 - pytest -q

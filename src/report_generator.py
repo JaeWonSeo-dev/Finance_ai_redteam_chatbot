@@ -17,7 +17,7 @@ def _safe_rate(numerator: int, denominator: int) -> float:
     return (numerator / denominator) * 100.0
 
 
-def generate_markdown_report(logs_df: pd.DataFrame) -> str:
+def generate_markdown_report(logs_df: pd.DataFrame, latest_redteam_df: pd.DataFrame | None = None) -> str:
     """Generate markdown summary text for portfolio submission."""
     metrics = build_dashboard_metrics(logs_df)
 
@@ -38,6 +38,19 @@ def generate_markdown_report(logs_df: pd.DataFrame) -> str:
         failed_text = "탐지 실패 사례가 없거나 아직 데이터가 충분하지 않습니다."
     else:
         failed_text = failed_cases[["timestamp", "category", "user_input", "risk_level", "blocked"]].head(10).to_markdown(index=False)
+
+    latest_run_text = "최신 레드팀 실행 데이터가 없습니다."
+    if latest_redteam_df is not None and not latest_redteam_df.empty:
+        latest_total = int(len(latest_redteam_df))
+        latest_passed = int(latest_redteam_df["test_passed"].astype(str).str.lower().isin(["true", "1"]).sum())
+        latest_pass_rate = _safe_rate(latest_passed, latest_total)
+        latest_run_id = str(latest_redteam_df["run_id"].iloc[0]) if "run_id" in latest_redteam_df.columns else "unknown"
+        latest_run_text = (
+            f"- 최신 실행 ID: {latest_run_id}\n"
+            f"- 최신 실행 케이스 수: {latest_total}\n"
+            f"- 최신 실행 통과 수: {latest_passed}\n"
+            f"- 최신 실행 Pass Rate: {latest_pass_rate:.1f}%"
+        )
 
     markdown = f"""# 금융 생성형 AI 상담 서비스 보안 포트폴리오 보고서
 
@@ -85,6 +98,9 @@ def generate_markdown_report(logs_df: pd.DataFrame) -> str:
 
 ### 위험도별 분포
 {risk_table}
+
+### 최신 레드팀 실행 성능
+{latest_run_text}
 
 ## 7. 탐지 실패 사례 분석
 {failed_text}
