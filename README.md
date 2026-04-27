@@ -80,6 +80,11 @@
 2. 앱 실행
 - streamlit run app.py
 
+API 모드 사용(선택)
+- 환경변수 OPENAI_API_KEY 설정 시 실제 LLM API 호출 가능
+- 환경변수 OPENAI_MODEL로 모델명 지정 가능 (기본값: gpt-4o-mini)
+- 키가 없거나 호출 오류 발생 시 자동으로 Mock 응답으로 대체
+
 3. 테스트 흐름
 - 챗봇 탭에서 단건 질의
 - 레드팀 테스트 탭에서 공격 시나리오 일괄 실행

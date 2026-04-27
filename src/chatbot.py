@@ -8,6 +8,7 @@ import os
 from dataclasses import asdict
 from typing import Dict
 
+from src.llm_client import LLMClient
 from src.security_filter import (
     detect_risk,
     enforce_investment_safety,
@@ -30,6 +31,7 @@ class FinanceChatbot:
 
     def __init__(self, llm_mode: str = "mock") -> None:
         self.llm_mode = llm_mode
+        self.llm_client = LLMClient()
 
     def ask(self, user_input: str, category: str) -> Dict[str, object]:
         """Process one question through risk filter, response generation, and output policy."""
@@ -78,18 +80,26 @@ class FinanceChatbot:
         )
 
     def _api_response(self, user_input: str, category: str) -> str:
-        """Placeholder API mode. Kept simple for portfolio/demo usage."""
+        """API mode with safe fallback to mock when config is unavailable."""
+        guidance = CATEGORY_GUIDANCE.get(category, "금융 상담은 상품 특성과 위험요인을 함께 확인하는 것이 중요합니다.")
+
         api_key = os.getenv("OPENAI_API_KEY", "").strip()
-        if not api_key:
+        if not api_key or not self.llm_client.is_ready():
             return (
                 "[API 모드 안내] OPENAI_API_KEY가 설정되지 않아 Mock 응답으로 대체합니다.\n"
                 + self._mock_response(user_input, category)
             )
 
-        # In a real deployment, call the LLM provider here.
-        # For a portfolio-safe sample, we keep deterministic fallback behavior.
-        return (
-            "[API 모드 샘플 응답]\n"
-            "실제 배포 시 이 영역에 LLM API 호출을 연결하세요.\n"
-            + self._mock_response(user_input, category)
-        )
+        try:
+            generated = self.llm_client.generate(
+                user_input=user_input,
+                category=category,
+                category_guidance=guidance,
+            )
+            return f"[API 응답]\n{generated}"
+        except Exception as exc:
+            return (
+                f"[API 모드 오류] {exc}\n"
+                "안정성을 위해 Mock 응답으로 대체합니다.\n"
+                + self._mock_response(user_input, category)
+            )
