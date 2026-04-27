@@ -86,6 +86,9 @@
 - 관리자 대시보드 탭에서 결과 확인
 - 보고서 생성 탭에서 Markdown 보고서 저장
 
+4. 단위 테스트 실행
+- pytest -q
+
 ## 9. 테스트 결과 예시
 예시(샘플 CSV 기준):
 - Prompt Injection: high 탐지 + 차단
